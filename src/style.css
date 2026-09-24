@@ -1,0 +1,1421 @@
+/* ============================================================
+   BhaijiRide — Motorbike Group Ride Android 1:1 Pixel Match
+   Exact Match to Jetpack Compose HomeScreen & LiveMapScreen
+   ============================================================ */
+
+:root {
+  /* Exact Colors from Android Theme.kt & HomeScreen.kt */
+  --home-dark-bg: #090B0E;            /* Deep charcoal / near-black */
+  --home-card-bg: #13171F;            /* Rich charcoal card background */
+  --home-surface-elevated: #1B212C;    /* Interactive elevated surface */
+  --home-border: #26303E;             /* Subtle structural border */
+
+  /* Electric Amber & Orange */
+  --electric-amber: #FFA000;          /* Electric Amber */
+  --electric-amber-bright: #FFA726;   /* Glowing amber highlight */
+  --electric-amber-orange: #FF6D00;   /* High-energy electric orange */
+  --amber-button-gradient: linear-gradient(90deg, #FFA000 0%, #FF6D00 100%);
+  --amber-glow-border: rgba(255, 160, 0, 0.32);
+
+  /* Status Colors */
+  --home-status-green: #00E676;       /* Crisp status green (READY / ACTIVE / RIDING) */
+  --home-status-amber: #FFA000;       /* Refueling */
+  --home-status-orange: #FF7043;      /* Tire Puncture */
+  --home-status-blue: #40C4FF;        /* Rest Stop */
+  --home-status-red: #EF4444;         /* Emergency */
+  --home-status-other: #B0BEC5;       /* Other Stop (Slate Grey) */
+  --home-status-muted: #64748B;       /* Muted slate (ENDED) */
+
+  /* Typography Colors */
+  --home-text-primary: #F8FAFC;       /* Crisp white / platinum */
+  --home-text-secondary: #94A3B8;     /* Clean cool slate */
+  --home-text-muted: #64748B;         /* Muted slate */
+
+  /* Fonts */
+  --font-brand: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  background-color: var(--home-dark-bg);
+  color: var(--home-text-primary);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.4;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+#app {
+  width: 100%;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--home-dark-bg);
+  position: relative;
+}
+
+/* ============================================================
+   Home Screen: Mobile Wrapper & Title Logo Section
+   ============================================================ */
+.mobile-app-wrapper {
+  max-width: 480px;
+  width: 100%;
+  margin: 0 auto;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding: max(16px, env(safe-area-inset-top)) 16px max(32px, env(safe-area-inset-bottom)) 16px;
+  position: relative;
+}
+
+/* Android Title Header with Circular App Logo (No version/update row) */
+.android-hero-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin-top: 10px;
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+.logo-glow-wrapper {
+  position: relative;
+  width: 110px;
+  height: 110px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.logo-radial-glow {
+  position: absolute;
+  inset: -12px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 160, 0, 0.35) 0%, rgba(255, 160, 0, 0.1) 50%, transparent 70%);
+  pointer-events: none;
+}
+
+.logo-circle-frame {
+  width: 102px;
+  height: 102px;
+  border-radius: 50%;
+  background: var(--home-card-bg);
+  border: 2.5px solid var(--electric-amber);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 24px rgba(255, 160, 0, 0.4);
+  z-index: 2;
+  overflow: hidden;
+}
+
+.logo-image {
+  width: 86px;
+  height: 86px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.android-title-text {
+  font-family: var(--font-brand);
+  font-size: 28px;
+  font-weight: 900;
+  letter-spacing: 3.5px;
+  color: var(--home-text-primary);
+  margin-top: 14px;
+}
+
+.android-tagline-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: rgba(27, 33, 44, 0.85);
+  border: 1px solid var(--home-border);
+  border-radius: 20px;
+  padding: 5px 14px;
+  margin-top: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  color: var(--home-text-secondary);
+}
+
+.tagline-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--home-status-green);
+  box-shadow: 0 0 8px rgba(0, 230, 118, 0.6);
+}
+
+/* Vertical Stacking of Convoy Cards */
+.homescreen-content {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+/* ============================================================
+   Universal Android Card Style (Exact match to Jetpack Compose Box)
+   ============================================================ */
+.convoy-card {
+  width: 100%;
+  background: var(--home-card-bg);
+  border: 1px solid var(--amber-glow-border);
+  border-radius: 20px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
+  position: relative;
+}
+
+.card-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.card-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.card-callsign-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--electric-amber);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+
+/* Green "● READY" Badge in Card 1 */
+.ready-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(0, 230, 118, 0.15);
+  border: 1px solid rgba(0, 230, 118, 0.4);
+  border-radius: 8px;
+  padding: 3px 8px;
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--home-status-green);
+  letter-spacing: 0.5px;
+}
+
+.ready-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--home-status-green);
+}
+
+/* Material Outlined Text Fields */
+.material-outlined-field {
+  position: relative;
+  width: 100%;
+  margin-top: 14px;
+}
+
+.material-outlined-input {
+  width: 100%;
+  height: 56px;
+  background: rgba(27, 33, 44, 0.5);
+  border: 1px solid var(--home-border);
+  border-radius: 14px;
+  padding: 0 16px 0 48px;
+  color: var(--home-text-primary);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  font-weight: 500;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.material-outlined-input:focus {
+  border-color: var(--electric-amber);
+  box-shadow: 0 0 0 1px var(--electric-amber);
+}
+
+.material-outlined-input::placeholder {
+  color: var(--home-text-muted);
+  font-size: 14px;
+}
+
+.field-leading-icon {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--electric-amber);
+  pointer-events: none;
+}
+
+.field-floating-label {
+  position: absolute;
+  top: -8px;
+  left: 14px;
+  background: var(--home-card-bg);
+  padding: 0 6px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--home-text-secondary);
+  pointer-events: none;
+}
+
+.material-outlined-input:focus ~ .field-floating-label {
+  color: var(--electric-amber);
+}
+
+.field-trailing-btn {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--electric-amber);
+  cursor: pointer;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Card 2: START A NEW CONVOY */
+.circle-icon-badge {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: rgba(255, 160, 0, 0.15);
+  border: 1px solid rgba(255, 160, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--electric-amber);
+  flex-shrink: 0;
+}
+
+.card-title-stack {
+  display: flex;
+  flex-direction: column;
+}
+
+.card-subheading {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--electric-amber);
+  letter-spacing: 1.3px;
+  text-transform: uppercase;
+}
+
+.card-main-heading {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--home-text-primary);
+  font-family: var(--font-brand);
+}
+
+.card-description-text {
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--home-text-secondary);
+  margin-top: 10px;
+  margin-bottom: 18px;
+}
+
+/* Primary Amber Gradient Button */
+.btn-amber-gradient {
+  width: 100%;
+  height: 54px;
+  background: var(--amber-button-gradient);
+  border: none;
+  border-radius: 16px;
+  color: var(--home-dark-bg);
+  font-family: var(--font-brand);
+  font-size: 15.5px;
+  font-weight: 900;
+  letter-spacing: 0.3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  box-shadow: 0 4px 18px rgba(255, 160, 0, 0.28);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  text-decoration: none;
+}
+
+.btn-amber-gradient:hover {
+  filter: brightness(1.08);
+}
+
+/* Secondary Outlined Button: "Quick Start (No Route)" */
+.btn-convoy-outlined {
+  width: 100%;
+  height: 48px;
+  background: transparent;
+  border: 1px solid var(--home-border);
+  border-radius: 16px;
+  color: var(--home-text-primary);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  margin-top: 10px;
+  transition: all 0.2s ease;
+}
+
+.btn-convoy-outlined:hover {
+  background: rgba(255, 160, 0, 0.08);
+  border-color: rgba(255, 160, 0, 0.35);
+}
+
+/* Card 3: JOIN EXISTING CONVOY */
+.circle-icon-badge-elevated {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--home-surface-elevated);
+  border: 1px solid var(--home-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--electric-amber);
+  flex-shrink: 0;
+}
+
+.code-field-input {
+  font-family: var(--font-mono);
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+.btn-join-convoy {
+  width: 100%;
+  height: 52px;
+  background: var(--home-surface-elevated);
+  border: 1px solid var(--home-border);
+  border-radius: 16px;
+  color: var(--home-text-secondary);
+  font-family: var(--font-brand);
+  font-size: 15px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  margin-top: 14px;
+  transition: all 0.2s ease;
+}
+
+.btn-join-convoy.active {
+  background: var(--electric-amber);
+  border-color: var(--electric-amber);
+  color: var(--home-dark-bg);
+  box-shadow: 0 4px 18px rgba(255, 160, 0, 0.35);
+}
+
+/* Section: RECENT CONVOYS */
+.recent-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin-top: 10px;
+  margin-bottom: -8px;
+}
+
+.recent-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.recent-header-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--home-text-muted);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+
+.recent-count-chip {
+  background: var(--home-surface-elevated);
+  border: 1px solid var(--home-border);
+  border-radius: 8px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--electric-amber);
+}
+
+.btn-refresh-sessions {
+  background: none;
+  border: none;
+  color: var(--home-text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+}
+
+.btn-refresh-sessions:hover {
+  color: var(--electric-amber);
+}
+
+.session-card {
+  width: 100%;
+  background: var(--home-card-bg);
+  border: 1px solid var(--home-border);
+  border-radius: 20px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+.session-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.session-code-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.session-code-text {
+  font-family: var(--font-mono);
+  font-size: 22px;
+  font-weight: 900;
+  letter-spacing: 2.5px;
+  color: var(--home-text-primary);
+}
+
+.btn-copy-code {
+  background: none;
+  border: none;
+  color: var(--electric-amber);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  padding: 4px;
+}
+
+.session-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border-radius: 8px;
+  padding: 3px 8px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+
+.session-status-badge.ended {
+  background: rgba(100, 116, 139, 0.15);
+  border: 1px solid rgba(100, 116, 139, 0.3);
+  color: var(--home-text-secondary);
+}
+
+.session-status-badge.active {
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  color: var(--home-status-green);
+}
+
+.status-badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.status-badge-dot.ended { background: var(--home-text-muted); }
+.status-badge-dot.active { background: var(--home-status-green); }
+
+.session-timestamp-text {
+  font-size: 12px;
+  color: var(--home-text-secondary);
+  margin-top: 6px;
+  margin-bottom: 16px;
+}
+
+.session-actions-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+
+.btn-rejoin-session {
+  flex: 1;
+  height: 46px;
+  background: var(--home-surface-elevated);
+  border: 1px solid var(--home-border);
+  border-radius: 14px;
+  color: var(--home-text-primary);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-rejoin-session:hover {
+  border-color: var(--electric-amber);
+  color: var(--electric-amber);
+}
+
+.btn-delete-session {
+  width: 46px;
+  height: 46px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  border-radius: 14px;
+  color: var(--home-status-red);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+/* ============================================================
+   TripPlannerModal Fullscreen Sheet (Photon + OSRM)
+   ============================================================ */
+.trip-planner-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(9, 11, 14, 0.98);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  z-index: 2500;
+  display: flex;
+  flex-direction: column;
+  padding: max(16px, env(safe-area-inset-top)) 16px max(24px, env(safe-area-inset-bottom)) 16px;
+  overflow-y: auto;
+}
+
+.trip-planner-modal-content {
+  max-width: 480px;
+  width: 100%;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.modal-header-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.modal-title-stack {
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-title {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--home-text-primary);
+  font-family: var(--font-brand);
+}
+
+.modal-subtitle {
+  font-size: 11px;
+  color: var(--home-text-muted);
+}
+
+.btn-close-modal {
+  background: var(--home-surface-elevated);
+  border: 1px solid var(--home-border);
+  color: var(--home-text-primary);
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 15px;
+}
+
+/* Autocomplete Suggestions Dropdowns */
+.photon-suggestions-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: #141820;
+  border: 1px solid var(--home-border);
+  border-radius: 14px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.7);
+  max-height: 250px;
+  overflow-y: auto;
+  z-index: 1000;
+}
+
+.photon-suggestion-item {
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  cursor: pointer;
+}
+
+.photon-suggestion-item:hover {
+  background: rgba(255, 160, 0, 0.12);
+}
+
+.quick-gps-pick-item {
+  background: rgba(0, 230, 118, 0.1);
+  border-bottom: 1px solid rgba(0, 230, 118, 0.25);
+  color: var(--home-status-green);
+  font-weight: 700;
+}
+
+.route-preview-badge {
+  background: rgba(0, 230, 118, 0.12);
+  border: 1px solid rgba(0, 230, 118, 0.35);
+  border-radius: 14px;
+  padding: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  font-size: 14px;
+  color: var(--home-status-green);
+  font-weight: 700;
+}
+
+/* ============================================================
+   LIVE MAP SCREEN (Exact Match to Android LiveMapScreen.kt)
+   NEVER APPEARS BLANK: Fixed inset 0, full viewport coverage
+   Zero API Keys: OpenStreetMap Standard Mapnik
+   ============================================================ */
+.map-screen {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 1000;
+  overflow: hidden;
+  background: #090B0E;
+  display: flex;
+  flex-direction: column;
+}
+
+#leaflet-map {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  background: #090B0E;
+}
+
+/* Subtle clean contrast tuning for OpenStreetMap tiles */
+.leaflet-tile {
+  filter: brightness(0.9) contrast(1.05);
+}
+
+/* Top Header Bar Container */
+.map-top-container {
+  position: absolute;
+  top: max(14px, env(safe-area-inset-top));
+  left: 14px;
+  right: 14px;
+  z-index: 800;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.map-top-container > * {
+  pointer-events: auto;
+}
+
+/* TopRideBar: Ride Code Pill + Count + Leave */
+.top-ride-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.ride-code-pill {
+  background: rgba(20, 23, 30, 0.94);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 160, 0, 0.35);
+  border-radius: 22px;
+  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+}
+
+.ride-code-label-stack {
+  display: flex;
+  flex-direction: column;
+}
+
+.ride-code-small-label {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--home-text-muted);
+  letter-spacing: 1px;
+}
+
+.ride-code-big-text {
+  font-family: var(--font-mono);
+  font-size: 20px;
+  font-weight: 900;
+  letter-spacing: 2px;
+  color: var(--electric-amber);
+}
+
+.top-bar-right-badges {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.rider-count-circle-badge {
+  height: 44px;
+  min-width: 44px;
+  padding: 0 12px;
+  border-radius: 22px;
+  background: rgba(20, 23, 30, 0.94);
+  border: 1px solid rgba(255, 160, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  color: var(--home-text-primary);
+  font-weight: 700;
+  font-size: 14px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+}
+
+.leave-circle-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(20, 23, 30, 0.94);
+  border: 1.5px solid rgba(239, 68, 68, 0.65);
+  color: var(--home-status-red);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+/* TripOverviewBanner */
+.trip-overview-banner {
+  background: rgba(20, 23, 30, 0.94);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--home-border);
+  border-radius: 18px;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+.trip-overview-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.trip-overview-name {
+  font-weight: 700;
+  font-size: 13.5px;
+  color: var(--home-text-primary);
+}
+
+.trip-overview-meta {
+  font-size: 11.5px;
+  color: var(--electric-amber);
+}
+
+.btn-fit-route-action {
+  background: none;
+  border: none;
+  color: #00B0FF;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+
+/* Floating Right-Side Controls */
+.map-floating-controls {
+  position: absolute;
+  right: 14px;
+  top: 140px;
+  z-index: 800;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.map-control-btn {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: rgba(20, 23, 30, 0.94);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 160, 0, 0.35);
+  color: var(--electric-amber);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+/* Bottom Control Dock (Exact match to Jetpack Compose BottomControlDock) */
+.bottom-control-dock {
+  position: absolute;
+  bottom: max(14px, env(safe-area-inset-bottom));
+  left: 14px;
+  right: 14px;
+  z-index: 850;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.my-status-pill {
+  flex: 1;
+  height: 52px;
+  border-radius: 26px;
+  background: rgba(20, 23, 30, 0.94);
+  backdrop-filter: blur(12px);
+  border: 1.5px solid var(--home-status-green);
+  padding: 0 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+.status-emoji-circle {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: rgba(0, 230, 118, 0.18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+}
+
+.status-label-stack {
+  display: flex;
+  flex-direction: column;
+}
+
+.status-pill-sublabel {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--home-text-muted);
+  letter-spacing: 0.8px;
+}
+
+.status-pill-current {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--home-status-green);
+}
+
+.dock-circle-btn {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: rgba(20, 23, 30, 0.94);
+  border: 1px solid rgba(255, 160, 0, 0.35);
+  color: var(--electric-amber);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.15rem;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  flex-shrink: 0;
+  transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.dock-circle-btn:active {
+  transform: scale(0.92);
+}
+
+.dock-circle-btn svg {
+  width: 22px;
+  height: 22px;
+  display: block;
+}
+
+.dock-recenter-btn {
+  border: 1.5px solid rgba(255, 160, 0, 0.7);
+  background: rgba(20, 23, 30, 0.95);
+  background-image: radial-gradient(circle at center, rgba(255, 160, 0, 0.18) 0%, rgba(20, 23, 30, 0.95) 75%);
+  color: #FFA000;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6), 0 0 16px rgba(255, 160, 0, 0.28);
+}
+
+.dock-recenter-btn:hover {
+  border-color: #FFB300;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.7), 0 0 22px rgba(255, 160, 0, 0.45);
+}
+
+.active-route-btn {
+  border-color: rgba(64, 196, 255, 0.75);
+  background: rgba(64, 196, 255, 0.14);
+  color: #40C4FF;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5), 0 0 14px rgba(64, 196, 255, 0.2);
+}
+
+/* Stop Status Picker Modal (StopStatusDialog with 6 statuses) */
+.status-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(9, 11, 14, 0.85);
+  backdrop-filter: blur(12px);
+  z-index: 2500;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 16px;
+}
+
+.status-modal-sheet {
+  max-width: 480px;
+  width: 100%;
+  background: #14171E;
+  border: 1px solid var(--home-border);
+  border-radius: 24px;
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.7);
+}
+
+.status-option-item {
+  width: 100%;
+  height: 52px;
+  border-radius: 16px;
+  background: var(--home-surface-elevated);
+  border: 1px solid var(--home-border);
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  gap: 12px;
+  cursor: pointer;
+  color: var(--home-text-primary);
+  font-weight: 700;
+  font-size: 15px;
+  transition: all 0.2s ease;
+}
+
+.status-option-item:hover, .status-option-item.selected {
+  border-color: var(--electric-amber);
+  background: rgba(255, 160, 0, 0.12);
+}
+
+/* Pack List Bottom Sheet (RiderListBottomSheet) */
+.pack-sheet-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(9, 11, 14, 0.85);
+  backdrop-filter: blur(12px);
+  z-index: 2500;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.pack-sheet-container {
+  max-width: 480px;
+  width: 100%;
+  background: #14171E;
+  border-top: 1px solid var(--home-border);
+  border-radius: 24px 24px 0 0;
+  padding: 20px 20px max(24px, env(safe-area-inset-bottom)) 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-height: 70vh;
+}
+
+.pack-sheet-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow-y: auto;
+}
+
+.pack-rider-row {
+  background: var(--home-surface-elevated);
+  border: 1px solid var(--home-border);
+  border-radius: 14px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Custom Biker Marker with Glowing Rings */
+.biker-marker {
+  position: relative;
+  width: 52px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.biker-marker-pin {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #13171F;
+  border: 2.5px solid var(--electric-amber);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.7);
+  z-index: 10;
+}
+
+.biker-marker-label {
+  position: absolute;
+  bottom: -18px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(9, 11, 14, 0.95);
+  border: 1px solid var(--home-border);
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  white-space: nowrap;
+  color: var(--home-text-primary);
+  z-index: 12;
+}
+
+.biker-pulse-ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  border: 2px solid var(--electric-amber);
+  animation: marker-pulse 2s infinite ease-out;
+  pointer-events: none;
+}
+
+@keyframes marker-pulse {
+  0% { transform: translate(-50%, -50%) scale(0.8); opacity: 0.9; }
+  100% { transform: translate(-50%, -50%) scale(2.4); opacity: 0; }
+}
+
+/* Toast */
+.toast-container {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3500;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.cockpit-toast {
+  background: #1B212C;
+  border: 1px solid var(--electric-amber);
+  color: var(--home-text-primary);
+  padding: 10px 20px;
+  border-radius: 9999px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  animation: toast-in 0.25s ease-out;
+}
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* =============================================================
+   Rider Radar Panel (Exact 1:1 Jetpack Compose RiderRadarPanel)
+   ============================================================= */
+.rider-radar-panel {
+  position: absolute;
+  bottom: calc(76px + env(safe-area-inset-bottom));
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 28px);
+  max-width: 480px;
+  background: rgba(20, 23, 30, 0.94);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 160, 0, 0.28);
+  border-radius: 22px;
+  padding: 12px 14px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), 0 0 16px rgba(255, 160, 0, 0.15);
+  z-index: 840;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.radar-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  user-select: none;
+  border-radius: 12px;
+  padding: 2px 0;
+}
+
+.radar-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+@keyframes radarPulse {
+  0% {
+    transform: scale(0.92);
+    opacity: 0.35;
+  }
+  50% {
+    transform: scale(1.08);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0.92);
+    opacity: 0.35;
+  }
+}
+
+.radar-pulse-box {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: rgba(255, 160, 0, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: radarPulse 2.4s ease-in-out infinite;
+  color: var(--electric-amber);
+}
+
+.radar-pulse-box svg {
+  width: 16px;
+  height: 16px;
+  display: block;
+}
+
+.radar-title {
+  font-family: var(--font-brand);
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--home-text-primary);
+  letter-spacing: 1.2px;
+}
+
+.radar-count-pill {
+  border-radius: 50px;
+  background: rgba(255, 160, 0, 0.15);
+  border: 1px solid rgba(255, 160, 0, 0.35);
+  padding: 2px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--electric-amber);
+  letter-spacing: 0.5px;
+}
+
+.radar-chevron {
+  color: var(--home-text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease;
+}
+
+.radar-chevron svg {
+  width: 20px;
+  height: 20px;
+  display: block;
+}
+
+.radar-content {
+  margin-top: 10px;
+}
+
+.radar-content.collapsed {
+  display: none;
+}
+
+.radar-empty-state {
+  display: flex;
+  align-items: center;
+  padding: 8px 4px;
+  font-size: 13px;
+  color: var(--home-text-muted);
+  font-family: var(--font-sans);
+}
+
+.radar-riders-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 160px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+/* Custom scrollbar for radar list */
+.radar-riders-list::-webkit-scrollbar {
+  width: 4px;
+}
+.radar-riders-list::-webkit-scrollbar-thumb {
+  background: rgba(255, 160, 0, 0.3);
+  border-radius: 4px;
+}
+
+.radar-rider-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(30, 35, 45, 0.7);
+  border: 1px solid rgba(255, 160, 0, 0.18);
+  border-radius: 12px;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+}
+
+.radar-rider-card:hover {
+  background: rgba(36, 42, 54, 0.85);
+  border-color: rgba(255, 160, 0, 0.4);
+}
+
+.radar-rider-card:active {
+  transform: scale(0.98);
+}
+
+.radar-dir-badge {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.radar-dir-badge.ahead {
+  background: #1B5E20;
+  color: #FFFFFF;
+}
+
+.radar-dir-badge.behind {
+  background: #E65100;
+  color: #FFFFFF;
+}
+
+.radar-dir-badge.unknown {
+  background: rgba(255, 255, 255, 0.08);
+  font-size: 16px;
+}
+
+.radar-dir-badge svg {
+  width: 15px;
+  height: 15px;
+  display: block;
+}
+
+.radar-rider-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.radar-relative-text {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--home-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.radar-sub-text {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--home-text-muted);
+}
+
+.radar-rider-status-emoji {
+  font-size: 18px;
+  flex-shrink: 0;
+  margin-left: 6px;
+}
+
