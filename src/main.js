@@ -72,12 +72,12 @@ const defaultSessions = [
   }
 ];
 
-const savedSessions = JSON.parse(localStorage.getItem('bhaiji_recent_convoys') || 'null');
+const savedSessions = JSON.parse(localStorage.getItem('packsync_recent_convoys') || localStorage.getItem('bhaiji_recent_convoys') || 'null');
 
 const state = {
-  riderName: localStorage.getItem('bhaiji_rider_name') || 'Safiur',
-  activeRideCode: localStorage.getItem('bhaiji_active_ride_code') || '',
-  myRiderId: localStorage.getItem('bhaiji_rider_id') || '',
+  riderName: localStorage.getItem('packsync_rider_name') || localStorage.getItem('bhaiji_rider_name') || 'Safiur',
+  activeRideCode: localStorage.getItem('packsync_active_ride_code') || localStorage.getItem('bhaiji_active_ride_code') || '',
+  myRiderId: localStorage.getItem('packsync_rider_id') || localStorage.getItem('bhaiji_rider_id') || '',
   joinCodeInput: '',
   myStatus: 'RIDING',
   myLocation: null,
@@ -233,15 +233,15 @@ function renderHomeScreen() {
         <div class="logo-glow-wrapper">
           <div class="logo-radial-glow"></div>
           <div class="logo-circle-frame">
-            <img src="/app_logo.png" alt="BhaijiRide App Logo" class="logo-image" />
+            <img src="/app_logo.png" alt="PackSync App Logo" class="logo-image" />
           </div>
         </div>
 
-        <h1 class="android-title-text">BHAIJI RIDE</h1>
+        <h1 class="android-title-text">PACKSYNC</h1>
 
         <div class="android-tagline-badge">
           <span class="tagline-dot"></span>
-          <span>GPS CONVOY & EMERGENCY SAFETY</span>
+          <span>NEVER LOSE YOUR PACK AGAIN</span>
         </div>
       </header>
 
@@ -1423,7 +1423,7 @@ function attachHomeEvents() {
   if (nameInput) {
     nameInput.addEventListener('input', (e) => {
       state.riderName = e.target.value.trim();
-      localStorage.setItem('bhaiji_rider_name', state.riderName);
+      localStorage.setItem('packsync_rider_name', state.riderName);
       const readyBadge = document.querySelector('.ready-badge');
       const topRow = document.querySelector('.card-top-row');
       if (state.riderName.length > 0) {
@@ -1535,7 +1535,7 @@ function attachHomeEvents() {
       const idx = parseInt(btn.getAttribute('data-delete-idx'));
       if (!isNaN(idx)) {
         state.sessions.splice(idx, 1);
-        localStorage.setItem('bhaiji_recent_convoys', JSON.stringify(state.sessions));
+        localStorage.setItem('packsync_recent_convoys', JSON.stringify(state.sessions));
         renderApp();
         showToast('Convoy removed from history.');
       }
@@ -1933,7 +1933,7 @@ async function handleCreateConvoy(tripInfo = null) {
     state.isPackListOpen = false;
     hasCenteredInitialRoute = false;
 
-    localStorage.setItem('bhaiji_active_ride_code', rideCode);
+    localStorage.setItem('packsync_active_ride_code', rideCode);
     addSavedSession(rideCode, state.riderName, true);
 
     renderApp();
@@ -1962,7 +1962,7 @@ async function handleJoinConvoy(code) {
     state.isPackListOpen = false;
     hasCenteredInitialRoute = false;
 
-    localStorage.setItem('bhaiji_active_ride_code', code);
+    localStorage.setItem('packsync_active_ride_code', code);
     addSavedSession(code, state.riderName, true);
 
     renderApp();
@@ -1985,11 +1985,12 @@ function handleLeaveConvoy() {
   state.isStatusPickerOpen = false;
   state.isPackListOpen = false;
   hasCenteredInitialRoute = false;
+  localStorage.removeItem('packsync_active_ride_code');
   localStorage.removeItem('bhaiji_active_ride_code');
 
   const item = state.sessions.find(s => s.code === code);
   if (item) item.isActive = false;
-  localStorage.setItem('bhaiji_recent_convoys', JSON.stringify(state.sessions));
+  localStorage.setItem('packsync_recent_convoys', JSON.stringify(state.sessions));
 
   renderApp();
   showToast('You left the convoy.');
@@ -2005,5 +2006,5 @@ function addSavedSession(code, riderName, isActive = true) {
     isHost: true
   });
   state.sessions = list.slice(0, 5);
-  localStorage.setItem('bhaiji_recent_convoys', JSON.stringify(state.sessions));
+  localStorage.setItem('packsync_recent_convoys', JSON.stringify(state.sessions));
 }

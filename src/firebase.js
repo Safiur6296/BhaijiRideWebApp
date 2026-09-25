@@ -46,10 +46,10 @@ export async function getOrCreateRiderId() {
     return cred.user.uid;
   } catch (err) {
     console.warn('Anonymous auth failed or offline, using persistent local ID:', err);
-    let localId = localStorage.getItem('bhaiji_rider_id');
+    let localId = localStorage.getItem('packsync_rider_id') || localStorage.getItem('bhaiji_rider_id');
     if (!localId) {
       localId = 'rider_' + Math.random().toString(36).substring(2, 10);
-      localStorage.setItem('bhaiji_rider_id', localId);
+      localStorage.setItem('packsync_rider_id', localId);
     }
     return localId;
   }

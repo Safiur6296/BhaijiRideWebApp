@@ -1,7 +1,7 @@
 {
-  "name": "BhaijiRide - Group Ride Tracker",
-  "short_name": "BhaijiRide",
-  "description": "Live GPS tracking and stop communication for motorbike group rides.",
+  "name": "PackSync - Never Lose Your Pack Again",
+  "short_name": "PackSync",
+  "description": "Never lose your pack again. Real-time GPS tracking and live convoy telemetry for motorbike group rides.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#090B0E",
