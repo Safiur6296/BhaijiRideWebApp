@@ -482,18 +482,19 @@ function renderTripPlannerModal() {
 // -------------------------------------------------------------
 function renderMapScreen() {
   const currentStatusCfg = STATUS_CONFIG[state.myStatus] || STATUS_CONFIG.RIDING;
+  const emergencyRiders = (state.riders || []).filter(r => r.id !== state.myRiderId && (r.status === 'EMERGENCY' || r.riderStatus === 'EMERGENCY'));
 
   return `
     <div class="map-screen">
       <!-- Fullscreen Leaflet Map Container -->
       <div id="leaflet-map"></div>
 
-      <!-- Top Header Container: TopRideBar + TripOverviewBanner -->
+      <!-- Top Header Container: TopRideBar + TripOverviewBanner + EmergencyAlertBanner -->
       <div class="map-top-container">
         <!-- TopRideBar -->
         <div class="top-ride-bar">
           <!-- Ride Code Pill with Tap-to-Copy -->
-          <div class="ride-code-pill" id="btn-copy-ride-code-top" title="Tap to copy and share code">
+          <div class="ride-code-pill" id="btn-copy-ride-code-top" title="Tap to copy and share code" role="button" aria-label="Copy ride code: ${state.activeRideCode}">
             <div class="ride-code-label-stack">
               <span class="ride-code-small-label">RIDE CODE</span>
               <span class="ride-code-big-text">${state.activeRideCode}</span>
@@ -503,13 +504,13 @@ function renderMapScreen() {
 
           <div class="top-bar-right-badges">
             <!-- Pack Count Circular Badge -->
-            <div class="rider-count-circle-badge" id="btn-pack-count-badge" title="Pack Members">
+            <div class="rider-count-circle-badge" id="btn-pack-count-badge" title="Pack Members" role="button" aria-label="${state.riders.length || 1} pack members">
               <span style="color: var(--electric-amber); display: flex;">${ICONS.person}</span>
               <span>${state.riders.length || 1}</span>
             </div>
 
             <!-- Leave Button with Red Outline -->
-            <button class="leave-circle-btn" id="btn-leave-ride-circle" title="Leave Ride Session">
+            <button class="leave-circle-btn" id="btn-leave-ride-circle" title="Leave Ride Session" aria-label="Leave ride session">
               <span style="display: flex;">${ICONS.exit}</span>
             </button>
           </div>
@@ -525,15 +526,29 @@ function renderMapScreen() {
                 <div class="trip-overview-meta">${state.tripInfo.distanceKm} km • ${state.tripInfo.durationMin} min</div>
               </div>
             </div>
-            <button class="btn-fit-route-action" id="btn-fit-route-banner">FIT ROUTE</button>
+            <button class="btn-fit-route-action" id="btn-fit-route-banner" aria-label="Fit route on map">FIT ROUTE</button>
+          </div>
+        ` : ''}
+
+        <!-- Emergency Alert Banner (Android 1:1 EmergencyAlertBanner) -->
+        ${emergencyRiders.length > 0 ? `
+          <div class="emergency-alert-banner" id="banner-emergency-locate" data-lat="${emergencyRiders[0].lat || ''}" data-lng="${emergencyRiders[0].lng || ''}">
+            <div class="emergency-alert-left">
+              <span class="emergency-pulsing-icon">🚨</span>
+              <div class="emergency-alert-text">
+                <span class="emergency-alert-title">EMERGENCY ALERT</span>
+                <span class="emergency-alert-desc">${emergencyRiders[0].name || 'Pack member'} needs assistance!</span>
+              </div>
+            </div>
+            <button class="btn-emergency-locate" id="btn-emergency-locate">LOCATE</button>
           </div>
         ` : ''}
       </div>
 
       <!-- Floating Controls on Right -->
       <div class="map-floating-controls">
-        <button class="map-control-btn" id="btn-map-fit-route" title="Fit all riders / route">🗺️</button>
-        <button class="map-control-btn" id="btn-map-wakelock" title="Keep screen awake">
+        <button class="map-control-btn" id="btn-map-fit-route" title="Fit all riders / route" aria-label="Fit all riders and route">🗺️</button>
+        <button class="map-control-btn" id="btn-map-wakelock" title="Keep screen awake" aria-label="Toggle screen wake lock">
           ${state.wakeLockActive ? '🔒' : '💡'}
         </button>
       </div>
@@ -543,10 +558,10 @@ function renderMapScreen() {
         ${renderRiderRadarPanel()}
       </div>
 
-      <!-- BottomControlDock (Exact Android Composables) -->
+      <!-- BottomControlDock (Exact Android Composables - Fully responsive & never pushed off-screen) -->
       <div class="bottom-control-dock">
         <!-- MY STATUS Pill -->
-        <div class="my-status-pill" id="btn-open-status-dialog" style="border-color: ${currentStatusCfg.color};">
+        <div class="my-status-pill" id="btn-open-status-dialog" style="border-color: ${currentStatusCfg.color};" role="button" aria-label="Current status: ${currentStatusCfg.name}. Tap to change">
           <div class="status-emoji-circle" style="background: ${currentStatusCfg.color}26;">
             ${currentStatusCfg.emoji}
           </div>
@@ -557,19 +572,19 @@ function renderMapScreen() {
         </div>
 
         <!-- Pack List Button -->
-        <button class="dock-circle-btn" id="btn-open-pack-list" title="Convoy Pack Members">
+        <button class="dock-circle-btn" id="btn-open-pack-list" title="Convoy Pack Members" aria-label="Convoy pack members">
           ${ICONS.group}
         </button>
 
         <!-- Route Toggle Button (when planned route is active) -->
         ${state.tripInfo && state.tripInfo.encodedPolyline ? `
-          <button class="dock-circle-btn ${state.isRouteVisible ? 'active-route-btn' : ''}" id="btn-dock-toggle-route" title="Toggle Route">
+          <button class="dock-circle-btn ${state.isRouteVisible ? 'active-route-btn' : ''}" id="btn-dock-toggle-route" title="Toggle Route" aria-label="Toggle route display">
             ${ICONS.altRoute}
           </button>
         ` : ''}
 
         <!-- Recenter Button (Centered on user with Android MyLocation icon) -->
-        <button class="dock-circle-btn dock-recenter-btn" id="btn-dock-recenter" title="Recenter on Me">
+        <button class="dock-circle-btn dock-recenter-btn" id="btn-dock-recenter" title="Recenter on Me" aria-label="Recenter map on my location">
           ${ICONS.myLocation}
         </button>
       </div>
@@ -834,7 +849,9 @@ function initLeafletMap() {
 
   mapInstance = L.map('leaflet-map', {
     zoomControl: false,
-    attributionControl: false
+    attributionControl: false,
+    preferCanvas: true,
+    tapTolerance: 15
   }).setView(initialCenter, state.myLocation ? 16 : 14);
 
   // OpenStreetMap standard Mapnik tiles - identical to TileSourceFactory.MAPNIK in Android
@@ -854,6 +871,24 @@ function initLeafletMap() {
   setTimeout(() => {
     if (mapInstance) mapInstance.invalidateSize();
   }, 450);
+
+  // Mobile responsive resize listener so Leaflet map canvas updates when browser UI shows/hides
+  if (!window._mapResizeAttached) {
+    window._mapResizeAttached = true;
+    window.addEventListener('resize', () => {
+      if (mapInstance) mapInstance.invalidateSize();
+    }, { passive: true });
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', () => {
+        if (mapInstance) mapInstance.invalidateSize();
+      }, { passive: true });
+    }
+    window.addEventListener('orientationchange', () => {
+      setTimeout(() => {
+        if (mapInstance) mapInstance.invalidateSize();
+      }, 250);
+    }, { passive: true });
+  }
 
   // Render planned route polyline if present
   if (state.tripInfo && state.tripInfo.encodedPolyline) {
@@ -988,7 +1023,10 @@ function drawRoutePolyline(encodedPolyline) {
   startMarker = L.circleMarker(points[0], { radius: 7, fillColor: '#00E676', color: '#FFF', weight: 2, fillOpacity: 1 }).addTo(mapInstance);
   destMarker = L.circleMarker(points[points.length - 1], { radius: 8, fillColor: '#FF1744', color: '#FFF', weight: 2, fillOpacity: 1 }).addTo(mapInstance);
 
-  mapInstance.fitBounds(routePolyline.getBounds(), { padding: [50, 50] });
+  mapInstance.fitBounds(routePolyline.getBounds(), {
+    paddingTopLeft: [20, 110],
+    paddingBottomRight: [20, 120]
+  });
 }
 
 // -------------------------------------------------------------
@@ -1435,11 +1473,26 @@ function attachMapEvents() {
     });
   }
 
+  const emBanner = document.getElementById('banner-emergency-locate');
+  if (emBanner) {
+    emBanner.addEventListener('click', () => {
+      const lat = parseFloat(emBanner.getAttribute('data-lat'));
+      const lng = parseFloat(emBanner.getAttribute('data-lng'));
+      if (lat && lng && mapInstance) {
+        mapInstance.flyTo([lat, lng], 17, { animate: true, duration: 1 });
+        showToast('Locating emergency rider 🚨');
+      }
+    });
+  }
+
   const fitRouteBannerBtn = document.getElementById('btn-fit-route-banner');
   if (fitRouteBannerBtn) {
     fitRouteBannerBtn.addEventListener('click', () => {
       if (routePolyline && mapInstance) {
-        mapInstance.fitBounds(routePolyline.getBounds(), { padding: [50, 50] });
+        mapInstance.fitBounds(routePolyline.getBounds(), {
+          paddingTopLeft: [20, 110],
+          paddingBottomRight: [20, 120]
+        });
       }
     });
   }
@@ -1525,7 +1578,10 @@ function attachMapEvents() {
       });
       if (routePolyline) bounds.extend(routePolyline.getBounds());
       if (bounds.isValid()) {
-        mapInstance.fitBounds(bounds, { padding: [50, 50] });
+        mapInstance.fitBounds(bounds, {
+          paddingTopLeft: [20, 110],
+          paddingBottomRight: [20, 120]
+        });
         showToast('Fitted all pack members.');
       } else {
         handleRecenter();
