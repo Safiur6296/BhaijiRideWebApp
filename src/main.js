@@ -104,6 +104,7 @@ let riderMarkers = {};
 let routePolyline = null;
 let startMarker = null;
 let destMarker = null;
+let hasCenteredInitialRoute = false;
 let locationWatchId = null;
 let unsubscribeRiders = null;
 let unsubscribeTrip = null;
@@ -517,32 +518,14 @@ function renderMapScreen() {
         </div>
 
         <!-- TripOverviewBanner (if route planned) -->
-        ${state.tripInfo && state.tripInfo.destName ? `
-          <div class="trip-overview-banner">
-            <div class="trip-overview-left">
-              <span style="color: #00B0FF; display: flex;">${ICONS.altRoute}</span>
-              <div>
-                <div class="trip-overview-name">${state.tripInfo.destName.split(',')[0]}</div>
-                <div class="trip-overview-meta">${state.tripInfo.distanceKm} km • ${state.tripInfo.durationMin} min</div>
-              </div>
-            </div>
-            <button class="btn-fit-route-action" id="btn-fit-route-banner" aria-label="Fit route on map">FIT ROUTE</button>
-          </div>
-        ` : ''}
+        <div id="trip-overview-container">
+          ${renderTripOverviewBanner()}
+        </div>
 
         <!-- Emergency Alert Banner (Android 1:1 EmergencyAlertBanner) -->
-        ${emergencyRiders.length > 0 ? `
-          <div class="emergency-alert-banner" id="banner-emergency-locate" data-lat="${emergencyRiders[0].lat || ''}" data-lng="${emergencyRiders[0].lng || ''}">
-            <div class="emergency-alert-left">
-              <span class="emergency-pulsing-icon">🚨</span>
-              <div class="emergency-alert-text">
-                <span class="emergency-alert-title">EMERGENCY ALERT</span>
-                <span class="emergency-alert-desc">${emergencyRiders[0].name || 'Pack member'} needs assistance!</span>
-              </div>
-            </div>
-            <button class="btn-emergency-locate" id="btn-emergency-locate">LOCATE</button>
-          </div>
-        ` : ''}
+        <div id="emergency-banner-container">
+          ${renderEmergencyBanner()}
+        </div>
       </div>
 
       <!-- Floating Controls on Right -->
@@ -576,12 +559,10 @@ function renderMapScreen() {
           ${ICONS.group}
         </button>
 
-        <!-- Route Toggle Button (when planned route is active) -->
-        ${state.tripInfo && state.tripInfo.encodedPolyline ? `
-          <button class="dock-circle-btn ${state.isRouteVisible ? 'active-route-btn' : ''}" id="btn-dock-toggle-route" title="Toggle Route" aria-label="Toggle route display">
-            ${ICONS.altRoute}
-          </button>
-        ` : ''}
+        <!-- Route Toggle Button (Exact Android BottomControlDock: always present, active when route active) -->
+        <button class="dock-circle-btn ${state.tripInfo && (state.tripInfo.encodedPolyline || state.tripInfo.routeGeometry) ? (state.isRouteVisible ? 'active-route-btn' : 'inactive-route-btn') : 'inactive-route-btn'}" id="btn-dock-toggle-route" title="${state.tripInfo && (state.tripInfo.encodedPolyline || state.tripInfo.routeGeometry) ? (state.isRouteVisible ? 'Toggle Route (Visible)' : 'Toggle Route (Hidden)') : 'Toggle Route'}" aria-label="Toggle route display">
+          ${ICONS.altRoute}
+        </button>
 
         <!-- Recenter Button (Centered on user with Android MyLocation icon) -->
         <button class="dock-circle-btn dock-recenter-btn" id="btn-dock-recenter" title="Recenter on Me" aria-label="Recenter map on my location">
@@ -589,11 +570,15 @@ function renderMapScreen() {
         </button>
       </div>
 
-      <!-- StopStatusDialog Modal -->
-      ${state.isStatusPickerOpen ? renderStatusDialog() : ''}
+      <!-- StopStatusDialog Modal Container -->
+      <div id="status-dialog-container">
+        ${state.isStatusPickerOpen ? renderStatusDialog() : ''}
+      </div>
 
-      <!-- RiderListBottomSheet Modal -->
-      ${state.isPackListOpen ? renderPackListModal() : ''}
+      <!-- RiderListBottomSheet Modal Container -->
+      <div id="pack-modal-container">
+        ${state.isPackListOpen ? renderPackListModal() : ''}
+      </div>
     </div>
   `;
 }
@@ -754,6 +739,75 @@ function attachRadarEvents() {
   });
 }
 
+function renderTripOverviewBanner() {
+  if (!state.tripInfo || !state.tripInfo.destName) return '';
+  const cleanDestName = (state.tripInfo.destName || '').split(',')[0];
+  const dist = state.tripInfo.distanceKm || (state.tripInfo.distanceMeters ? (state.tripInfo.distanceMeters / 1000).toFixed(1) : '');
+  const dur = state.tripInfo.durationMin || (state.tripInfo.durationSeconds ? Math.round(state.tripInfo.durationSeconds / 60) : '');
+
+  return `
+    <div class="trip-overview-banner">
+      <div class="trip-overview-left">
+        <span style="color: #00B0FF; display: flex;">${ICONS.altRoute}</span>
+        <div>
+          <div class="trip-overview-name">${cleanDestName}</div>
+          <div class="trip-overview-meta">${dist ? `${dist} km` : ''} ${dist && dur ? '•' : ''} ${dur ? `${dur} min` : ''}</div>
+        </div>
+      </div>
+      <button class="btn-fit-route-action" id="btn-fit-route-banner" aria-label="Fit route on map">FIT ROUTE</button>
+    </div>
+  `;
+}
+
+function updateTripBannerUI() {
+  const container = document.getElementById('trip-overview-container');
+  if (!container) return;
+  container.innerHTML = renderTripOverviewBanner();
+  const fitBtn = document.getElementById('btn-fit-route-banner');
+  if (fitBtn) {
+    fitBtn.addEventListener('click', () => {
+      if (!state.isRouteVisible) {
+        setRouteVisibility(true, false);
+      }
+      zoomToFitRouteAndRiders();
+    });
+  }
+}
+
+function renderEmergencyBanner() {
+  const emergencyRiders = (state.riders || []).filter(r => r.id !== state.myRiderId && (r.status === 'EMERGENCY' || r.riderStatus === 'EMERGENCY'));
+  if (emergencyRiders.length === 0) return '';
+  return `
+    <div class="emergency-alert-banner" id="banner-emergency-locate" data-lat="${emergencyRiders[0].lat || ''}" data-lng="${emergencyRiders[0].lng || ''}">
+      <div class="emergency-alert-left">
+        <span class="emergency-pulsing-icon">🚨</span>
+        <div class="emergency-alert-text">
+          <span class="emergency-alert-title">EMERGENCY ALERT</span>
+          <span class="emergency-alert-desc">${emergencyRiders[0].name || 'Pack member'} needs assistance!</span>
+        </div>
+      </div>
+      <button class="btn-emergency-locate" id="btn-emergency-locate">LOCATE</button>
+    </div>
+  `;
+}
+
+function updateEmergencyBannerUI() {
+  const container = document.getElementById('emergency-banner-container');
+  if (!container) return;
+  container.innerHTML = renderEmergencyBanner();
+  const emBanner = document.getElementById('banner-emergency-locate');
+  if (emBanner) {
+    emBanner.addEventListener('click', () => {
+      const lat = parseFloat(emBanner.getAttribute('data-lat'));
+      const lng = parseFloat(emBanner.getAttribute('data-lng'));
+      if (lat && lng && mapInstance) {
+        mapInstance.flyTo([lat, lng], 17, { animate: true, duration: 1 });
+        showToast('Locating emergency rider 🚨');
+      }
+    });
+  }
+}
+
 function renderStatusDialog() {
   return `
     <div class="status-modal-overlay" id="status-modal-overlay">
@@ -775,6 +829,66 @@ function renderStatusDialog() {
       </div>
     </div>
   `;
+}
+
+function openStatusDialog() {
+  state.isStatusPickerOpen = true;
+  const container = document.getElementById('status-dialog-container');
+  if (!container) return;
+  container.innerHTML = renderStatusDialog();
+
+  const closeBtn = document.getElementById('btn-close-status-modal');
+  if (closeBtn) closeBtn.addEventListener('click', closeStatusDialog);
+
+  const overlay = document.getElementById('status-modal-overlay');
+  if (overlay) {
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) {
+        closeStatusDialog();
+      }
+    });
+  }
+
+  container.querySelectorAll('.status-option-item').forEach(item => {
+    item.addEventListener('click', async () => {
+      const newStatus = item.getAttribute('data-status');
+      if (newStatus) {
+        state.myStatus = newStatus;
+        closeStatusDialog();
+        updateMyStatusUI();
+        updateAllMarkers();
+        updateRiderRadarUI();
+        const cfg = STATUS_CONFIG[newStatus] || STATUS_CONFIG.RIDING;
+        showToast(`Status updated: ${cfg.name} ${cfg.emoji}`);
+        await updateRiderStatus(state.activeRideCode, state.myRiderId, newStatus);
+      }
+    });
+  });
+}
+
+function closeStatusDialog() {
+  state.isStatusPickerOpen = false;
+  const container = document.getElementById('status-dialog-container');
+  if (container) container.innerHTML = '';
+}
+
+function updateMyStatusUI() {
+  const currentStatusCfg = STATUS_CONFIG[state.myStatus] || STATUS_CONFIG.RIDING;
+  const statusPill = document.getElementById('btn-open-status-dialog');
+  if (statusPill) {
+    statusPill.style.borderColor = currentStatusCfg.color;
+    statusPill.setAttribute('aria-label', `Current status: ${currentStatusCfg.name}. Tap to change`);
+    const emojiCircle = statusPill.querySelector('.status-emoji-circle');
+    if (emojiCircle) {
+      emojiCircle.style.background = `${currentStatusCfg.color}26`;
+      emojiCircle.textContent = currentStatusCfg.emoji;
+    }
+    const currentText = statusPill.querySelector('.status-pill-current');
+    if (currentText) {
+      currentText.style.color = currentStatusCfg.color;
+      currentText.textContent = currentStatusCfg.name;
+    }
+  }
 }
 
 function renderPackListModal() {
@@ -828,6 +942,124 @@ function renderPackListModal() {
   `;
 }
 
+function openPackListModal() {
+  state.isPackListOpen = true;
+  updatePackModalUI();
+}
+
+function updatePackModalUI() {
+  const container = document.getElementById('pack-modal-container');
+  if (!container) return;
+  if (!state.isPackListOpen) {
+    container.innerHTML = '';
+    return;
+  }
+  container.innerHTML = renderPackListModal();
+
+  const closeBtn = document.getElementById('btn-close-pack-modal');
+  if (closeBtn) closeBtn.addEventListener('click', closePackListModal);
+
+  const overlay = document.getElementById('pack-sheet-overlay');
+  if (overlay) {
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) {
+        closePackListModal();
+      }
+    });
+  }
+}
+
+function closePackListModal() {
+  state.isPackListOpen = false;
+  updatePackModalUI();
+}
+
+function setRouteVisibility(visible, shouldZoom = false) {
+  state.isRouteVisible = visible;
+  updateRouteToggleBtnUI();
+
+  if (!mapInstance) return;
+
+  if (visible) {
+    if (routePolyline && !mapInstance.hasLayer(routePolyline)) {
+      mapInstance.addLayer(routePolyline);
+    }
+    if (startMarker && !mapInstance.hasLayer(startMarker)) {
+      mapInstance.addLayer(startMarker);
+    }
+    if (destMarker && !mapInstance.hasLayer(destMarker)) {
+      mapInstance.addLayer(destMarker);
+    }
+    if (shouldZoom) {
+      zoomToFitRouteAndRiders();
+    }
+    showToast('Route visible');
+  } else {
+    if (routePolyline && mapInstance.hasLayer(routePolyline)) {
+      mapInstance.removeLayer(routePolyline);
+    }
+    if (startMarker && mapInstance.hasLayer(startMarker)) {
+      mapInstance.removeLayer(startMarker);
+    }
+    if (destMarker && mapInstance.hasLayer(destMarker)) {
+      mapInstance.removeLayer(destMarker);
+    }
+    showToast('Route hidden');
+  }
+}
+
+function updateRouteToggleBtnUI() {
+  const toggleBtn = document.getElementById('btn-dock-toggle-route');
+  if (!toggleBtn) return;
+
+  const hasPlannedRoute = Boolean(state.tripInfo && (state.tripInfo.encodedPolyline || state.tripInfo.routeGeometry));
+  if (hasPlannedRoute && state.isRouteVisible) {
+    toggleBtn.classList.add('active-route-btn');
+    toggleBtn.classList.remove('inactive-route-btn');
+    toggleBtn.title = 'Toggle Route (Visible)';
+  } else {
+    toggleBtn.classList.remove('active-route-btn');
+    toggleBtn.classList.add('inactive-route-btn');
+    toggleBtn.title = hasPlannedRoute ? 'Toggle Route (Hidden)' : 'No route planned';
+  }
+}
+
+function zoomToFitRouteAndRiders() {
+  if (!mapInstance) return;
+  const bounds = L.latLngBounds([]);
+
+  if (state.isRouteVisible && routePolyline) {
+    bounds.extend(routePolyline.getBounds());
+  }
+
+  if (state.myLocation && state.myLocation.lat && state.myLocation.lng) {
+    bounds.extend([state.myLocation.lat, state.myLocation.lng]);
+  }
+
+  (state.riders || []).forEach(r => {
+    if (r.lat && r.lng) bounds.extend([r.lat, r.lng]);
+  });
+
+  if (state.tripInfo && state.isRouteVisible) {
+    if (state.tripInfo.startLat && state.tripInfo.startLng) {
+      bounds.extend([state.tripInfo.startLat, state.tripInfo.startLng]);
+    }
+    if (state.tripInfo.destLat && state.tripInfo.destLng) {
+      bounds.extend([state.tripInfo.destLat, state.tripInfo.destLng]);
+    }
+  }
+
+  if (bounds.isValid()) {
+    mapInstance.fitBounds(bounds, {
+      paddingTopLeft: [20, 110],
+      paddingBottomRight: [20, 120],
+      maxZoom: 17
+    });
+  } else if (state.myLocation && state.myLocation.lat && state.myLocation.lng) {
+    mapInstance.flyTo([state.myLocation.lat, state.myLocation.lng], 16);
+  }
+}
+
 // -------------------------------------------------------------
 // Leaflet Map: OpenStreetMap Mapnik (100% Free, ZERO API Keys)
 // -------------------------------------------------------------
@@ -840,6 +1072,9 @@ function initLeafletMap() {
     mapInstance = null;
     userMarker = null;
     riderMarkers = {};
+    routePolyline = null;
+    startMarker = null;
+    destMarker = null;
   }
 
   // Initial center: user's location if known, else default to India center
@@ -891,8 +1126,10 @@ function initLeafletMap() {
   }
 
   // Render planned route polyline if present
-  if (state.tripInfo && state.tripInfo.encodedPolyline) {
-    drawRoutePolyline(state.tripInfo.encodedPolyline);
+  const poly = state.tripInfo && (state.tripInfo.encodedPolyline || state.tripInfo.routeGeometry);
+  if (poly) {
+    drawRoutePolyline(poly, /* autoFit = */ !hasCenteredInitialRoute);
+    hasCenteredInitialRoute = true;
   }
 
   // Draw markers immediately
@@ -901,8 +1138,13 @@ function initLeafletMap() {
   // If user location is not yet known, trigger high-accuracy GPS fix now
   if (!state.myLocation) {
     acquireUserGpsLocation((loc) => {
-      if (mapInstance) {
-        mapInstance.setView([loc.lat, loc.lng], 16);
+      if (mapInstance && !hasCenteredInitialRoute) {
+        if (poly && state.isRouteVisible) {
+          zoomToFitRouteAndRiders();
+        } else {
+          mapInstance.setView([loc.lat, loc.lng], 16);
+        }
+        hasCenteredInitialRoute = true;
       }
     });
   }
@@ -1003,9 +1245,20 @@ function updateAllMarkers() {
   });
 }
 
-function drawRoutePolyline(encodedPolyline) {
+function drawRoutePolyline(encodedPolyline, autoFit = false) {
   if (!mapInstance || !encodedPolyline) return;
-  if (routePolyline) routePolyline.remove();
+  if (routePolyline) {
+    mapInstance.removeLayer(routePolyline);
+    routePolyline = null;
+  }
+  if (startMarker) {
+    mapInstance.removeLayer(startMarker);
+    startMarker = null;
+  }
+  if (destMarker) {
+    mapInstance.removeLayer(destMarker);
+    destMarker = null;
+  }
 
   const points = decodePolyline(encodedPolyline);
   if (points.length === 0) return;
@@ -1015,18 +1268,46 @@ function drawRoutePolyline(encodedPolyline) {
     weight: 6,
     opacity: 0.9,
     lineJoin: 'round'
-  }).addTo(mapInstance);
-
-  if (startMarker) startMarker.remove();
-  if (destMarker) destMarker.remove();
-
-  startMarker = L.circleMarker(points[0], { radius: 7, fillColor: '#00E676', color: '#FFF', weight: 2, fillOpacity: 1 }).addTo(mapInstance);
-  destMarker = L.circleMarker(points[points.length - 1], { radius: 8, fillColor: '#FF1744', color: '#FFF', weight: 2, fillOpacity: 1 }).addTo(mapInstance);
-
-  mapInstance.fitBounds(routePolyline.getBounds(), {
-    paddingTopLeft: [20, 110],
-    paddingBottomRight: [20, 120]
   });
+
+  const startCoord = (state.tripInfo && state.tripInfo.startLat && state.tripInfo.startLng)
+    ? [state.tripInfo.startLat, state.tripInfo.startLng]
+    : points[0];
+  const destCoord = (state.tripInfo && state.tripInfo.destLat && state.tripInfo.destLng)
+    ? [state.tripInfo.destLat, state.tripInfo.destLng]
+    : points[points.length - 1];
+
+  startMarker = L.circleMarker(startCoord, {
+    radius: 7,
+    fillColor: '#00E676',
+    color: '#FFF',
+    weight: 2,
+    fillOpacity: 1
+  });
+  if (state.tripInfo && state.tripInfo.startName) {
+    startMarker.bindPopup(`<strong>Start:</strong> ${state.tripInfo.startName}`);
+  }
+
+  destMarker = L.circleMarker(destCoord, {
+    radius: 8,
+    fillColor: '#FF1744',
+    color: '#FFF',
+    weight: 2,
+    fillOpacity: 1
+  });
+  if (state.tripInfo && state.tripInfo.destName) {
+    destMarker.bindPopup(`<strong>Destination:</strong> ${state.tripInfo.destName}`);
+  }
+
+  if (state.isRouteVisible) {
+    routePolyline.addTo(mapInstance);
+    startMarker.addTo(mapInstance);
+    destMarker.addTo(mapInstance);
+  }
+
+  if (autoFit && state.isRouteVisible) {
+    zoomToFitRouteAndRiders();
+  }
 }
 
 // -------------------------------------------------------------
@@ -1042,7 +1323,15 @@ function startRideTracking(rideCode, riderId) {
   acquireUserGpsLocation((loc) => {
     updateRiderLocation(rideCode, riderId, { lat: loc.lat, lng: loc.lng, speed: loc.speed || 0 });
     if (mapInstance) {
-      mapInstance.setView([loc.lat, loc.lng], 16);
+      if (!hasCenteredInitialRoute) {
+        const poly = state.tripInfo && (state.tripInfo.encodedPolyline || state.tripInfo.routeGeometry);
+        if (poly && state.isRouteVisible) {
+          zoomToFitRouteAndRiders();
+        } else {
+          mapInstance.setView([loc.lat, loc.lng], 16);
+        }
+        hasCenteredInitialRoute = true;
+      }
       updateAllMarkers();
     }
   });
@@ -1080,16 +1369,27 @@ function startRideTracking(rideCode, riderId) {
     state.riders = ridersList;
     updateAllMarkers();
     updateRiderRadarUI();
+    updateEmergencyBannerUI();
     const badge = document.querySelector('#btn-pack-count-badge span:last-child');
     if (badge) badge.textContent = ridersList.length || 1;
+    if (state.isPackListOpen) {
+      updatePackModalUI();
+    }
   });
 
   // 4. Subscribe to trip info
   if (unsubscribeTrip) unsubscribeTrip();
   unsubscribeTrip = subscribeToTripInfo(rideCode, (trip) => {
-    if (trip && trip.encodedPolyline) {
+    if (trip && (trip.encodedPolyline || trip.routeGeometry)) {
+      const poly = trip.encodedPolyline || trip.routeGeometry;
+      const isNewRoute = !state.tripInfo || (state.tripInfo.encodedPolyline !== poly && state.tripInfo.routeGeometry !== poly);
       state.tripInfo = trip;
-      drawRoutePolyline(trip.encodedPolyline);
+      if (isNewRoute) {
+        drawRoutePolyline(poly, /* autoFit = */ !hasCenteredInitialRoute);
+        hasCenteredInitialRoute = true;
+        updateTripBannerUI();
+        updateRouteToggleBtnUI();
+      }
     }
   });
 }
@@ -1109,6 +1409,10 @@ function stopRideTracking() {
   }
   releaseScreenWakeLock();
   stopAudioKeepAlive();
+  hasCenteredInitialRoute = false;
+  routePolyline = null;
+  startMarker = null;
+  destMarker = null;
 }
 
 // -------------------------------------------------------------
@@ -1488,12 +1792,10 @@ function attachMapEvents() {
   const fitRouteBannerBtn = document.getElementById('btn-fit-route-banner');
   if (fitRouteBannerBtn) {
     fitRouteBannerBtn.addEventListener('click', () => {
-      if (routePolyline && mapInstance) {
-        mapInstance.fitBounds(routePolyline.getBounds(), {
-          paddingTopLeft: [20, 110],
-          paddingBottomRight: [20, 120]
-        });
+      if (!state.isRouteVisible) {
+        setRouteVisibility(true, false);
       }
+      zoomToFitRouteAndRiders();
     });
   }
 
@@ -1552,17 +1854,12 @@ function attachMapEvents() {
   const dockRouteToggleBtn = document.getElementById('btn-dock-toggle-route');
   if (dockRouteToggleBtn) {
     dockRouteToggleBtn.addEventListener('click', () => {
-      state.isRouteVisible = !state.isRouteVisible;
-      if (routePolyline && mapInstance) {
-        if (state.isRouteVisible) {
-          mapInstance.addLayer(routePolyline);
-          showToast('Route displayed');
-        } else {
-          mapInstance.removeLayer(routePolyline);
-          showToast('Route hidden');
-        }
+      const hasPlannedRoute = Boolean(state.tripInfo && (state.tripInfo.encodedPolyline || state.tripInfo.routeGeometry));
+      if (!hasPlannedRoute) {
+        showToast('No route planned for this convoy');
+        return;
       }
-      renderApp();
+      setRouteVisibility(!state.isRouteVisible, !state.isRouteVisible);
     });
   }
 
@@ -1570,22 +1867,8 @@ function attachMapEvents() {
   const fitAllBtn = document.getElementById('btn-map-fit-route');
   if (fitAllBtn) {
     fitAllBtn.addEventListener('click', () => {
-      if (!mapInstance) return;
-      const bounds = L.latLngBounds([]);
-      if (state.myLocation) bounds.extend([state.myLocation.lat, state.myLocation.lng]);
-      state.riders.forEach(r => {
-        if (r.lat && r.lng) bounds.extend([r.lat, r.lng]);
-      });
-      if (routePolyline) bounds.extend(routePolyline.getBounds());
-      if (bounds.isValid()) {
-        mapInstance.fitBounds(bounds, {
-          paddingTopLeft: [20, 110],
-          paddingBottomRight: [20, 120]
-        });
-        showToast('Fitted all pack members.');
-      } else {
-        handleRecenter();
-      }
+      zoomToFitRouteAndRiders();
+      showToast('Fitted all pack members.');
     });
   }
 
@@ -1615,51 +1898,15 @@ function attachMapEvents() {
   const statusPill = document.getElementById('btn-open-status-dialog');
   if (statusPill) {
     statusPill.addEventListener('click', () => {
-      state.isStatusPickerOpen = true;
-      renderApp();
-    });
-  }
-
-  // Status dialog selection (includes OTHER status)
-  document.querySelectorAll('.status-option-item').forEach(item => {
-    item.addEventListener('click', async () => {
-      const newStatus = item.getAttribute('data-status');
-      if (newStatus) {
-        state.myStatus = newStatus;
-        state.isStatusPickerOpen = false;
-        await updateRiderStatus(state.activeRideCode, state.myRiderId, newStatus);
-        const cfg = STATUS_CONFIG[newStatus];
-        showToast(`Status updated: ${cfg.name} ${cfg.emoji}`);
-        renderApp();
-      }
-    });
-  });
-
-  const closeStatusModalBtn = document.getElementById('btn-close-status-modal');
-  if (closeStatusModalBtn) {
-    closeStatusModalBtn.addEventListener('click', () => {
-      state.isStatusPickerOpen = false;
-      renderApp();
+      openStatusDialog();
     });
   }
 
   // Pack list modal toggle
   const packListBtn = document.getElementById('btn-open-pack-list');
   const packCountBadge = document.getElementById('btn-pack-count-badge');
-  const openPack = () => {
-    state.isPackListOpen = true;
-    renderApp();
-  };
-  if (packListBtn) packListBtn.addEventListener('click', openPack);
-  if (packCountBadge) packCountBadge.addEventListener('click', openPack);
-
-  const closePackModalBtn = document.getElementById('btn-close-pack-modal');
-  if (closePackModalBtn) {
-    closePackModalBtn.addEventListener('click', () => {
-      state.isPackListOpen = false;
-      renderApp();
-    });
-  }
+  if (packListBtn) packListBtn.addEventListener('click', openPackListModal);
+  if (packCountBadge) packCountBadge.addEventListener('click', openPackListModal);
 
   // Rider Radar panel interactions
   attachRadarEvents();
@@ -1681,6 +1928,10 @@ async function handleCreateConvoy(tripInfo = null) {
     state.myStatus = 'RIDING';
     state.activeView = 'MAP';
     state.tripInfo = tripInfo;
+    state.isRouteVisible = true;
+    state.isStatusPickerOpen = false;
+    state.isPackListOpen = false;
+    hasCenteredInitialRoute = false;
 
     localStorage.setItem('bhaiji_active_ride_code', rideCode);
     addSavedSession(rideCode, state.riderName, true);
@@ -1705,6 +1956,11 @@ async function handleJoinConvoy(code) {
     state.myRiderId = riderId;
     state.myStatus = 'RIDING';
     state.activeView = 'MAP';
+    state.tripInfo = null;
+    state.isRouteVisible = true;
+    state.isStatusPickerOpen = false;
+    state.isPackListOpen = false;
+    hasCenteredInitialRoute = false;
 
     localStorage.setItem('bhaiji_active_ride_code', code);
     addSavedSession(code, state.riderName, true);
@@ -1725,6 +1981,10 @@ function handleLeaveConvoy() {
 
   state.activeRideCode = '';
   state.activeView = 'HOME';
+  state.tripInfo = null;
+  state.isStatusPickerOpen = false;
+  state.isPackListOpen = false;
+  hasCenteredInitialRoute = false;
   localStorage.removeItem('bhaiji_active_ride_code');
 
   const item = state.sessions.find(s => s.code === code);
