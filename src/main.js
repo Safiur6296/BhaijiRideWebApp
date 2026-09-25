@@ -1859,7 +1859,7 @@ function attachMapEvents() {
         showToast('No route planned for this convoy');
         return;
       }
-      setRouteVisibility(!state.isRouteVisible, !state.isRouteVisible);
+      setRouteVisibility(!state.isRouteVisible, false);
     });
   }
 
